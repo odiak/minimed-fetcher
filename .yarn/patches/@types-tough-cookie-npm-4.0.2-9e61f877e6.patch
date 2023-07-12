@@ -1,0 +1,14 @@
+diff --git a/index.d.ts b/index.d.ts
+index effd1a84e618f217f24c61396efba7b599db2b7d..b7b44533f948bc27d911fb317706347784d49b5d 100755
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -282,6 +282,9 @@ export class MemoryCookieStore extends Store {
+     removeCookies(domain: string, path: string, cb: (err: Error | null) => void): void;
+     removeCookies(domain: string, path: string): Promise<void>;
+ 
++    removeAllCookies(cb: (err: Error | null) => void): void;
++    removeAllCookies(): Promise<void>;
++
+     getAllCookies(cb: (err: Error | null, cookie: Cookie[]) => void): void;
+     getAllCookies(): Promise<Cookie[]>;
+ }
