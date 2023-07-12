@@ -11,7 +11,7 @@ export type Env = {
 
 const app = new Hono<{ Bindings: Env }>()
 
-app.get('/fetch', async (c) => {
+app.post('/fetch', async (c) => {
   const password = c.req
     .header('Authorization')
     ?.match(/^Bearer\s+(.+?)\s*$/)?.[1]
