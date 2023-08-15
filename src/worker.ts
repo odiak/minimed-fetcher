@@ -40,7 +40,7 @@ app.post('/putData', async (c) => {
     data: unknown
   }>()
   const hash = await calcHash(c.env.SALT, username, password)
-  c.env.DATA.put(hash, JSON.stringify(data))
+  await c.env.DATA.put(hash, JSON.stringify(data))
 
   return c.text('', 204)
 })
