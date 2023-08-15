@@ -4,6 +4,7 @@ import { Fetcher } from './carelink'
 
 export type Env = {
   COOKIES: KVNamespace
+  DATA: KVNamespace
   SALT: string
 }
 
@@ -29,6 +30,15 @@ app.post(
     }
 
     return res
+  }),
+)
+
+app.post(
+  '/putData',
+  authWrapper(async ({ hash }, c) => {
+    c.env.DATA.put(hash, await c.req.json())
+
+    return c.text('', 204)
   }),
 )
 

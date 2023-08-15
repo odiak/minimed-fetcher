@@ -15,6 +15,11 @@ binding = "COOKIES"
 id = "6036501bb5af4937a2b11922444919a5"
 preview_id = "ab5173c056614cb599a087e48da822eb"
 
+[[kv_namespaces]]
+binding = "DATA"
+id = "3d7e74de5d6d48319b20e4457950c0ff"
+preview_id = "21ad3309b99945da94bc24f04c4eee72"
+
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/r2/api/workers/workers-api-usage/
 # [[r2_buckets]]
