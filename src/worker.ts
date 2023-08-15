@@ -33,14 +33,17 @@ app.post(
   }),
 )
 
-app.post(
-  '/putData',
-  authWrapper(async ({ hash }, c) => {
-    c.env.DATA.put(hash, await c.req.json())
+app.post('/putData', async (c) => {
+  const { username, password, data } = await c.req.json<{
+    username: string
+    password: string
+    data: unknown
+  }>()
+  const hash = await calcHash(c.env.SALT, username, password)
+  c.env.DATA.put(hash, JSON.stringify(data))
 
-    return c.text('', 204)
-  }),
-)
+  return c.text('', 204)
+})
 
 export default app
 
