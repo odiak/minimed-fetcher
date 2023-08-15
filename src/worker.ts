@@ -4,9 +4,6 @@ import { Fetcher } from './carelink'
 
 export type Env = {
   COOKIES: KVNamespace
-  MINIMED_USER: string
-  MINIMED_PASSWORD: string
-  PASSWORD: string
   SALT: string
 }
 
@@ -14,13 +11,8 @@ const app = new Hono<{ Bindings: Env }>()
 
 app.post(
   '/fetch',
-  authWrapper(async ({ username, password, language, country }, c) => {
-    const salt = c.env.SALT
-    const passwordHash = await hash(`${salt}${username}@${password}`)
-    const { cookieStore, saveCookies } = await setupCookie(
-      c.env.COOKIES,
-      passwordHash,
-    )
+  authWrapper(async ({ username, password, language, country, hash }, c) => {
+    const { cookieStore, saveCookies } = await setupCookie(c.env.COOKIES, hash)
 
     const fetcher = new Fetcher(cookieStore, {
       CARELINK_USERNAME: username,
@@ -42,7 +34,12 @@ app.post(
 
 export default app
 
-async function hash(text: string) {
+async function calcHash(
+  salt: string,
+  username: string,
+  password: string,
+): Promise<string> {
+  const text = `${salt}${username}@${password}`
   const ab = await crypto.subtle.digest(
     'SHA-512',
     new TextEncoder().encode(text),
@@ -77,48 +74,40 @@ type Credentials = {
   country: string
 }
 
+type CredentialsWithHash = Credentials & {
+  hash: string
+}
+
 function authWrapper(
   f: (
-    credentials: Credentials,
+    credentials: CredentialsWithHash,
     c: Context<{ Bindings: Env }>,
   ) => Promise<Response>,
 ): (c: Context<{ Bindings: Env }>) => Promise<Response> {
   return async (c) => {
-    const legacyPassword = c.req
-      .header('Authorization')
-      ?.match(/^Bearer\s+(.+?)\s*$/)?.[1]
-    if (legacyPassword !== undefined) {
-      if (legacyPassword === c.env.PASSWORD) {
-        return f(
-          {
-            username: c.env.MINIMED_USER,
-            password: c.env.MINIMED_PASSWORD,
-            language: 'ja',
-            country: 'jp',
-          },
-          c,
-        )
-      } else {
-        return c.text('Unauthorized', 401)
-      }
-    }
-
     let credentials: Credentials
-
     try {
       credentials = await c.req.json<Credentials>()
-      if (
-        !credentials.username ||
-        !credentials.password ||
-        !credentials.country ||
-        !credentials.language
-      ) {
-        return c.text('Unauthorized', 401)
-      }
+      assertNonEmptyString(credentials.username)
+      assertNonEmptyString(credentials.password)
+      assertNonEmptyString(credentials.language)
+      assertNonEmptyString(credentials.country)
     } catch (e) {
       return c.text('Unauthorized', 401)
     }
 
-    return f(credentials, c)
+    const hash = await calcHash(
+      c.env.SALT,
+      credentials.username,
+      credentials.password,
+    )
+
+    return f({ ...credentials, hash }, c)
+  }
+}
+
+function assertNonEmptyString(s: unknown): asserts s is string {
+  if (typeof s !== 'string' || s.length === 0) {
+    throw new Error('Invalid string')
   }
 }
