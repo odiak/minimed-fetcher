@@ -7,26 +7,26 @@ export type Env = {
   MINIMED_USER: string
   MINIMED_PASSWORD: string
   PASSWORD: string
+  SALT: string
 }
 
 const app = new Hono<{ Bindings: Env }>()
 
 app.post(
   '/fetch',
-  authWrapper(async (credentials, c) => {
-    const passwordHash = await sha1(
-      `${credentials.username}@${credentials.password}`,
-    )
+  authWrapper(async ({ username, password, language, country }, c) => {
+    const salt = c.env.SALT
+    const passwordHash = await hash(`${salt}${username}@${password}`)
     const { cookieStore, saveCookies } = await setupCookie(
       c.env.COOKIES,
       passwordHash,
     )
 
     const fetcher = new Fetcher(cookieStore, {
-      CARELINK_USERNAME: credentials.username,
-      CARELINK_PASSWORD: credentials.password,
-      COUNTRY: credentials.country,
-      LANG: credentials.language,
+      CARELINK_USERNAME: username,
+      CARELINK_PASSWORD: password,
+      COUNTRY: country,
+      LANG: language,
     })
     const res = await fetcher.fetchData()
 
@@ -42,11 +42,12 @@ app.post(
 
 export default app
 
-async function sha1(text: string) {
-  const ab = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(ab))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
+async function hash(text: string) {
+  const ab = await crypto.subtle.digest(
+    'SHA-512',
+    new TextEncoder().encode(text),
+  )
+  return btoa(String.fromCharCode(...new Uint8Array(ab)))
 }
 
 async function setupCookie(kv: KVNamespace, key: string) {
